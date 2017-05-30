@@ -659,9 +659,7 @@ bool KerasLayerBatchNormalization::LoadLayer(std::ifstream* file) {
     KASSERT(
             ReadFloats(file, running_stds_.data_.data(), running_stds_shape),
             "Expected running_stds");
-
-    KASSERT(activation_.LoadLayer(file), "Failed to load activation");
-
+    
     return true;
 }
 

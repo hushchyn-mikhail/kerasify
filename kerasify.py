@@ -221,7 +221,6 @@ def export_model(model, filename):
                 beta = layer.get_weights()[1]
                 running_mean = layer.get_weights()[2]
                 running_std = layer.get_weights()[3]
-                activation = layer.get_config()['activation']
 
                 f.write(struct.pack('I', LAYER_BATCHNORMALIZATION))
                 f.write(struct.pack('I', gamma.shape[0]))
@@ -238,9 +237,6 @@ def export_model(model, filename):
                 write_floats(f, beta)
                 write_floats(f, running_mean)
                 write_floats(f, running_std)
-
-                write_activation(activation)
-
 
             else:
                 assert False, "Unsupported layer type: %s" % layer_type
