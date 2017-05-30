@@ -285,7 +285,8 @@ class KerasLayerActivation : public KerasLayer {
         kSoftPlus = 3,
         kSigmoid = 4,
         kTanh = 5,
-        kHardSigmoid = 6
+        kHardSigmoid = 6,
+        kSoftMax = 7
     };
 
     KerasLayerActivation() : activation_type_(ActivationType::kLinear) {}
@@ -421,6 +422,23 @@ class KerasLayerEmbedding : public KerasLayer {
     Tensor weights_;
 };
 
+class KerasLayerBatchNormalization : public KerasLayer {
+public:
+    KerasLayerBatchNormalization() {}
+
+    virtual ~KerasLayerBatchNormalization() {}
+
+    virtual bool LoadLayer(std::ifstream* file);
+
+    virtual bool Apply(Tensor* in, Tensor* out);
+
+private:
+    Tensor gammas_;
+    Tensor betas_;
+    Tensor running_means_;
+    Tensor running_stds_;
+};
+
 class KerasModel {
   public:
     enum LayerType {
@@ -431,7 +449,8 @@ class KerasModel {
         kActivation = 5,
         kMaxPooling2D = 6,
         kLSTM = 7,
-        kEmbedding = 8
+        kEmbedding = 8,
+        kBatchNormalization = 9
     };
 
     KerasModel() {}

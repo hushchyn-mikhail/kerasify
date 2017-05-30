@@ -69,6 +69,10 @@ bool KerasLayerActivation::LoadLayer(std::ifstream* file) {
     case kTanh:
         activation_type_ = kTanh;
         break;
+    case kSoftMax:
+        activation_type_ = kSoftMax;
+        break;
+
     default:
         KASSERT(false, "Unsupported activation type %d", activation);
     }
@@ -127,6 +131,17 @@ bool KerasLayerActivation::Apply(Tensor* in, Tensor* out) {
             out->data_[i] = std::tanh(out->data_[i]);
         }
         break;
+    case kSoftMax:
+        float denominator = 0.0;
+        for (size_t i = 0; i < out->data_.size(); i++) {
+            out->data_[i] = std::exp(out->data_[i]);
+            denominator += out->data_[i];
+        }
+        for (size_t i = 0; i < out->data_.size(); i++) {
+            out->data_[i] /= denominator;
+        }
+        break;
+
     default:
         break;
     }
@@ -605,6 +620,61 @@ bool KerasLayerLSTM::Step(Tensor* x, Tensor* out, Tensor* ht_1, Tensor* ct_1) {
 
     KASSERT(activation_.Apply(ct_1, &cc), "Failed to apply activation on c");
     *out = *ht_1 = o.Multiply(cc);
+
+    return true;
+}
+
+bool KerasLayerBatchNormalization::LoadLayer(std::ifstream* file) {
+    KASSERT(file, "Invalid file stream");
+
+    unsigned int gammas_shape = 0;
+    KASSERT(ReadUnsignedInt(file, &gammas_shape), "Expected gammas shape");
+    KASSERT(gammas_shape > 0, "Invalid gammas shape");
+
+    unsigned int betas_shape = 0;
+    KASSERT(ReadUnsignedInt(file, &betas_shape), "Expected betas shape");
+    KASSERT(betas_shape > 0, "Invalid betas shape");
+
+    unsigned int running_means_shape = 0;
+    KASSERT(ReadUnsignedInt(file, &running_means_shape), "Expected running_means shape");
+    KASSERT(running_means_shape > 0, "Invalid running_means shape");
+
+    unsigned int running_stds_shape = 0;
+    KASSERT(ReadUnsignedInt(file, &running_stds_shape), "Expected running_stds shape");
+    KASSERT(running_stds_shape > 0, "Invalid running_stds shape");
+
+    gammas_.Resize(gammas_shape);
+    KASSERT(
+            ReadFloats(file, gammas_.data_.data(), gammas_shape),
+            "Expected gammas");
+    betas_.Resize(betas_shape);
+    KASSERT(
+            ReadFloats(file, betas_.data_.data(), betas_shape),
+            "Expected betas");
+    running_means_.Resize(running_means_shape);
+    KASSERT(
+            ReadFloats(file, running_means_.data_.data(), running_means_shape),
+            "Expected running_means");
+    running_stds_.Resize(running_stds_shape);
+    KASSERT(
+            ReadFloats(file, running_stds_.data_.data(), running_stds_shape),
+            "Expected running_stds");
+
+    KASSERT(activation_.LoadLayer(file), "Failed to load activation");
+
+    return true;
+}
+
+bool KerasLayerBatchNormalization::Apply(Tensor* in, Tensor* out) {
+    KASSERT(in, "Invalid input");
+    KASSERT(out, "Invalid output");
+
+    *out = *in;
+
+    for (size_t i = 0; i < out->data_.size(); i++) {
+        out->data_[i] = (out->data_[i] - running_means_[i]) / std::sqrt((running_stds_ + 0.001));
+        out->data_[i] = gammas_[i] * out->data_[i] + betas_[i];
+    }
 
     return true;
 }

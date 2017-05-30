@@ -9,6 +9,7 @@ LAYER_ACTIVATION = 5
 LAYER_MAXPOOLING2D = 6
 LAYER_LSTM = 7
 LAYER_EMBEDDING = 8
+LAYER_BATCHNORMALIZATION = 9
 
 ACTIVATION_LINEAR = 1
 ACTIVATION_RELU = 2
@@ -16,6 +17,7 @@ ACTIVATION_SOFTPLUS = 3
 ACTIVATION_SIGMOID = 4
 ACTIVATION_TANH = 5
 ACTIVATION_HARD_SIGMOID = 6
+ACTIVATION_SOFTMAX = 7
 
 def write_floats(file, floats):
     '''
@@ -48,6 +50,8 @@ def export_model(model, filename):
                 f.write(struct.pack('I', ACTIVATION_SIGMOID))
             elif activation == 'hard_sigmoid':
                 f.write(struct.pack('I', ACTIVATION_HARD_SIGMOID))
+            elif activation == 'softmax':
+                f.write(struct.pack('I', ACTIVATION_SOFTMAX))
             else:
                 assert False, "Unsupported activation type: %s" % activation
 
@@ -211,6 +215,32 @@ def export_model(model, filename):
                 weights = weights.flatten()
 
                 write_floats(f, weights)
+
+            elif layer_type == 'BatchNormalization':
+                gamma = layer.get_weights()[0]
+                beta = layer.get_weights()[1]
+                running_mean = layer.get_weights()[2]
+                running_std = layer.get_weights()[3]
+                activation = layer.get_config()['activation']
+
+                f.write(struct.pack('I', LAYER_BATCHNORMALIZATION))
+                f.write(struct.pack('I', gamma.shape[0]))
+                f.write(struct.pack('I', beta.shape[0]))
+                f.write(struct.pack('I', running_mean.shape[0]))
+                f.write(struct.pack('I', running_std.shape[0]))
+
+                gamma = gamma.flatten()
+                beta = beta.flatten()
+                running_mean = running_mean.flatten()
+                running_std = running_std.flatten()
+
+                write_floats(f, gamma)
+                write_floats(f, beta)
+                write_floats(f, running_mean)
+                write_floats(f, running_std)
+
+                write_activation(activation)
+
 
             else:
                 assert False, "Unsupported layer type: %s" % layer_type
