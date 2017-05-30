@@ -132,16 +132,17 @@ bool KerasLayerActivation::Apply(Tensor* in, Tensor* out) {
         }
         break;
     case kSoftMax:
-        float denominator = 0.0;
-        for (size_t i = 0; i < out->data_.size(); i++) {
-            out->data_[i] = std::exp(out->data_[i]);
-            denominator += out->data_[i];
+        {
+            float denominator = 0.0;
+            for (size_t i = 0; i < out->data_.size(); i++) {
+                out->data_[i] = std::exp(out->data_[i]);
+                denominator += out->data_[i];
+            }
+            for (size_t i = 0; i < out->data_.size(); i++) {
+                out->data_[i] /= denominator;
+            }
+            break;
         }
-        for (size_t i = 0; i < out->data_.size(); i++) {
-            out->data_[i] /= denominator;
-        }
-        break;
-
     default:
         break;
     }
@@ -659,7 +660,7 @@ bool KerasLayerBatchNormalization::LoadLayer(std::ifstream* file) {
     KASSERT(
             ReadFloats(file, running_stds_.data_.data(), running_stds_shape),
             "Expected running_stds");
-    
+
     return true;
 }
 
@@ -670,8 +671,8 @@ bool KerasLayerBatchNormalization::Apply(Tensor* in, Tensor* out) {
     *out = *in;
 
     for (size_t i = 0; i < out->data_.size(); i++) {
-        out->data_[i] = (out->data_[i] - running_means_[i]) / std::sqrt((running_stds_ + 0.001));
-        out->data_[i] = gammas_[i] * out->data_[i] + betas_[i];
+        out->data_[i] = (out->data_[i] - running_means_(i)) / std::sqrt((running_stds_(i) + 0.001));
+        out->data_[i] = gammas_(i) * out->data_[i] + betas_(i);
     }
 
     return true;
