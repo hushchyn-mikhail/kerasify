@@ -716,6 +716,8 @@ bool KerasModel::LoadModel(const std::string& filename) {
         case kEmbedding:
             layer = new KerasLayerEmbedding();
             break;
+        case kBatchNormalization:
+            layer = new KerasLayerBatchNormalization();
         default:
             break;
         }
